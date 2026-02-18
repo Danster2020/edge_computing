@@ -1,0 +1,14 @@
+[project]
+name = "onnx"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=2.4.2",
+    "onnxruntime>=1.24.1",
+    "opencv-python>=4.13.0.92",
+    "skl2onnx>=1.4.7",
+    "torch>=2.10.0",
+    "ultralytics>=8.4.14",
+]
