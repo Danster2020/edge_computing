@@ -1,0 +1,6 @@
+objects:
+1. fork
+2. knife
+3. spoon
+4. mouse
+5. laptop

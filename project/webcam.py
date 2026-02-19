@@ -7,6 +7,12 @@ bench = Benchmark()
 
 cap = cv2.VideoCapture(0)
 
+# Warmup
+for _ in range(20):
+    ret, frame = cap.read()
+    if ret:
+        model(frame)
+
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -28,3 +34,10 @@ while cap.isOpened():
 
 cap.release()
 cv2.destroyAllWindows()
+
+print("\n===== BENCHMARK RESULTS =====")
+print(f"Average latency: {bench.average_latency_ms():.2f} ms")
+print(f"95th percentile latency: {bench.percentile_latency_ms():.2f} ms")
+print(f"Average FPS: {1000 / bench.average_latency_ms():.2f}")
+
+bench.save_csv("yolo11n_results.csv")

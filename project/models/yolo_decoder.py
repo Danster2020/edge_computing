@@ -3,6 +3,7 @@ import numpy as np
 import onnxruntime as ort
 from base_model import BaseModel
 from coco_labels import COCO_CLASSES
+import time
 
 class YoloModel(BaseModel):
     def __init__(self, path):
@@ -81,9 +82,24 @@ class YoloModel(BaseModel):
             self.boxes, self.scores, self.class_ids = [], [], []
 
     def __call__(self, frame):
+        t0 = time.perf_counter()
+
         inp = self.preprocess(frame)
+        t1 = time.perf_counter()
+
         outputs = self.session.run(None, {self.input_name: inp})
+        t2 = time.perf_counter()
+
         self.decode(outputs)
+        t3 = time.perf_counter()
+
+        return {
+            "preprocess": (t1 - t0) * 1000,
+            "inference": (t2 - t1) * 1000,
+            "postprocess": (t3 - t2) * 1000,
+            "total": (t3 - t0) * 1000
+        }
+
 
     def draw(self, frame):
         img = frame.copy()
