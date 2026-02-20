@@ -6,10 +6,18 @@ import sys
 from collections import Counter
 from benchmark import Benchmark
 from models.yolo_decoder import YoloModel
+from models.rf_detr_decoder import RfDetrModel
 import psutil
 
-MODEL_PATH = "onnx_models/yolo11n.onnx"
+MODEL_NAME = "rf-detr-base-coco" # yolo11n rf-detr-base-coco
+MODEL_PATH = f"onnx_models/{MODEL_NAME}.onnx"
 BENCHMARK_SECONDS = 10
+
+
+def load_model(path):
+    if "rf-detr" in path.lower() or "rfdetr" in path.lower():
+        return RfDetrModel(path)
+    return YoloModel(path)
 
 
 def main():
@@ -36,7 +44,7 @@ def main():
     # ==========================
     # Setup
     # ==========================
-    model = YoloModel(MODEL_PATH)
+    model = load_model(MODEL_PATH)
     bench = Benchmark()
 
     cap = cv2.VideoCapture(0)

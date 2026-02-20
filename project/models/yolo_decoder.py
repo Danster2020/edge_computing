@@ -5,6 +5,7 @@ from base_model import BaseModel
 from coco_labels import COCO_CLASSES
 import time
 
+
 class YoloModel(BaseModel):
     def __init__(self, path):
         self.session = ort.InferenceSession(path)
