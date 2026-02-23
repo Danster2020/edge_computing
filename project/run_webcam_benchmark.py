@@ -4,6 +4,8 @@ import csv
 import os
 import sys
 import argparse
+import subprocess
+import numpy as np
 from collections import Counter
 from benchmark import Benchmark
 from models.yolo_decoder import YoloModel
@@ -21,7 +23,63 @@ def load_model(path):
     return YoloModel(path)
 
 
+class RpiCamVidCapture:
+    def __init__(self, width=1280, height=720, framerate=30):
+        self.width = width
+        self.height = height
+        self.frame_bytes = width * height * 3 // 2  # YUV420 (I420)
+        cmd = [
+            "rpicam-vid",
+            "--nopreview",
+            "-t",
+            "0",
+            "--codec",
+            "yuv420",
+            "--width",
+            str(width),
+            "--height",
+            str(height),
+            "--framerate",
+            str(framerate),
+            "-o",
+            "-",
+        ]
+        self.proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            bufsize=0,
+        )
+
+    def read(self):
+        if self.proc.stdout is None:
+            return False, None
+
+        buf = self.proc.stdout.read(self.frame_bytes)
+        if not buf or len(buf) < self.frame_bytes:
+            return False, None
+
+        yuv = np.frombuffer(buf, dtype=np.uint8).reshape((self.height * 3 // 2, self.width))
+        frame = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_I420)
+        return True, frame
+
+    def release(self):
+        if self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+
+
 def open_camera(camera_type, camera_index):
+    if camera_type == "rpicam":
+        try:
+            return RpiCamVidCapture()
+        except FileNotFoundError:
+            print("rpicam-vid not found. Install Raspberry Pi camera apps.")
+            sys.exit(1)
+
     if camera_type == "rpi":
         try:
             from picamera2 import Picamera2
@@ -63,12 +121,16 @@ def read_frame(camera_type, cam):
         frame_rgb = cam.capture_array()
         frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
         return True, frame
+    if camera_type == "rpicam":
+        return cam.read()
     return cam.read()
 
 
 def close_camera(camera_type, cam):
     if camera_type == "rpi":
         cam.stop()
+    elif camera_type == "rpicam":
+        cam.release()
     else:
         cam.release()
 
@@ -76,7 +138,7 @@ def close_camera(camera_type, cam):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("experiment_name")
-    parser.add_argument("--camera", choices=["webcam", "rpi"], default="webcam")
+    parser.add_argument("--camera", choices=["webcam", "rpi", "rpicam"], default="webcam")
     parser.add_argument("--camera-index", type=int, default=0)
     args = parser.parse_args()
 
