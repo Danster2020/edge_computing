@@ -73,6 +73,43 @@ class RpiCamVidCapture:
 
 
 def open_camera(camera_type, camera_index):
+    if camera_type == "picamera":
+        try:
+            from picamera import PiCamera
+            from picamera.array import PiRGBArray
+        except ImportError:
+            print("picamera module is not available.")
+            print("Install (legacy): sudo apt install -y python3-picamera")
+            print("On Raspberry Pi OS Bookworm/Pi 5, prefer --camera rpi (picamera2).")
+            sys.exit(1)
+
+        class PiCameraCapture:
+            def __init__(self, width=1280, height=720, framerate=30):
+                self.camera = PiCamera()
+                self.camera.resolution = (width, height)
+                self.camera.framerate = framerate
+                self.raw_capture = PiRGBArray(self.camera, size=(width, height))
+                self.stream = self.camera.capture_continuous(
+                    self.raw_capture,
+                    format="bgr",
+                    use_video_port=True,
+                )
+
+            def read(self):
+                frame_data = next(self.stream, None)
+                if frame_data is None:
+                    return False, None
+                frame = frame_data.array
+                self.raw_capture.truncate(0)
+                return True, frame
+
+            def release(self):
+                self.stream.close()
+                self.raw_capture.close()
+                self.camera.close()
+
+        return PiCameraCapture()
+
     if camera_type == "rpicam":
         try:
             return RpiCamVidCapture()
@@ -117,6 +154,8 @@ def open_camera(camera_type, camera_index):
 
 
 def read_frame(camera_type, cam):
+    if camera_type == "picamera":
+        return cam.read()
     if camera_type == "rpi":
         frame_rgb = cam.capture_array()
         frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
@@ -127,7 +166,9 @@ def read_frame(camera_type, cam):
 
 
 def close_camera(camera_type, cam):
-    if camera_type == "rpi":
+    if camera_type == "picamera":
+        cam.release()
+    elif camera_type == "rpi":
         cam.stop()
     elif camera_type == "rpicam":
         cam.release()
@@ -138,7 +179,7 @@ def close_camera(camera_type, cam):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("experiment_name")
-    parser.add_argument("--camera", choices=["webcam", "rpi", "rpicam"], default="webcam")
+    parser.add_argument("--camera", choices=["webcam", "rpi", "rpicam", "picamera"], default="webcam")
     parser.add_argument("--camera-index", type=int, default=0)
     args = parser.parse_args()
 
@@ -256,9 +297,13 @@ def main():
         f.write("Detected objects summary:\n")
         for cls, count in class_counts.items():
             f.write(f"{cls}: {count}\n")
-        
-        avg_cpu = sum(row[4] for row in detection_rows) / len(detection_rows)
-        avg_memory = sum(row[5] for row in detection_rows) / len(detection_rows)
+
+        if detection_rows:
+            avg_cpu = sum(row[4] for row in detection_rows) / len(detection_rows)
+            avg_memory = sum(row[5] for row in detection_rows) / len(detection_rows)
+        else:
+            avg_cpu = 0.0
+            avg_memory = 0.0
         f.write(f"Average CPU usage: {avg_cpu:.2f} %\n")
         f.write(f"Average Memory usage: {avg_memory:.2f} MB\n")
 
@@ -268,6 +313,8 @@ def main():
     print("\n===== BENCHMARK COMPLETE =====")
     print(f"CSV saved to: {csv_path}")
     print(f"Summary saved to: {summary_path}")
+    if not detection_rows:
+        print("No frames were processed. Check camera selection/permissions.")
 
 
 if __name__ == "__main__":
