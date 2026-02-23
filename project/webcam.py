@@ -1,6 +1,7 @@
 import cv2
 import argparse
 import sys
+import os
 from benchmark import Benchmark
 from models.yolo_decoder import YoloModel
 from models.rf_detr_decoder import RfDetrModel
@@ -17,8 +18,22 @@ def open_camera(camera_type, camera_index):
         try:
             from picamera2 import Picamera2
         except ImportError:
-            print("picamera2 is not installed. Run: sudo apt install -y python3-picamera2")
-            sys.exit(1)
+            py_ver = f"{sys.version_info.major}.{sys.version_info.minor}"
+            fallback_paths = [
+                "/usr/lib/python3/dist-packages",
+                f"/usr/lib/python{py_ver}/dist-packages",
+            ]
+            for p in fallback_paths:
+                if os.path.isdir(p) and p not in sys.path:
+                    sys.path.append(p)
+            try:
+                from picamera2 import Picamera2
+            except ImportError:
+                print("picamera2 is not available in this Python environment.")
+                print("If using uv, try: python3 webcam.py --camera rpi")
+                print("Or install in uv env: uv add picamera2")
+                print("System install command: sudo apt install -y python3-picamera2")
+                sys.exit(1)
 
         cam = Picamera2()
         config = cam.create_video_configuration(
