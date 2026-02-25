@@ -9,7 +9,7 @@ def load_model(path):
         return RfDetrModel(path)
     return YoloModel(path)
 
-MODEL_NAME = "rf-detr-base-coco" # yolo11n rf-detr-base-coco
+MODEL_NAME = "yolo11n" # yolo11n rf-detr-base-coco
 MODEL_PATH = f"onnx_models/{MODEL_NAME}.onnx"
 model = load_model(MODEL_PATH)
 bench = Benchmark()
