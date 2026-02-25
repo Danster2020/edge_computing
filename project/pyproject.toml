@@ -11,5 +11,3 @@ dependencies = [
     "yolo>=0.3.1",
 ]
 
-[tool.uv]
-system-site-packages = true
