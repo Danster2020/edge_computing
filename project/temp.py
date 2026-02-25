@@ -21,18 +21,32 @@ import sys
 import psutil
 
 
-def main():
+# def main():
+#     if not hasattr(psutil, "sensors_temperatures"):
+#         sys.exit("platform not supported")
+#     temps = psutil.sensors_temperatures()
+#     if not temps:
+#         sys.exit("can't read any temperature")
+#     for name, entries in temps.items():
+#         print(name)
+#         for entry in entries:
+#             print(f"{entry.current} °C")
+#         print()
+        
+def get_cpu_temp():
     if not hasattr(psutil, "sensors_temperatures"):
-        sys.exit("platform not supported")
+        # platform not supported
+        return None
     temps = psutil.sensors_temperatures()
     if not temps:
-        sys.exit("can't read any temperature")
+        return None
     for name, entries in temps.items():
-        print(name)
         for entry in entries:
-            print(f"{entry.current} °C")
-        print()
+            if name == "cpu_thermal":
+                return entry.current
+    
+    
+    
 
-
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

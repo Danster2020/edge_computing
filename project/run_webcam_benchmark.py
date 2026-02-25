@@ -7,6 +7,7 @@ from collections import Counter
 from benchmark import Benchmark
 from models.yolo_decoder import YoloModel
 from models.rf_detr_decoder import RfDetrModel
+from temp import get_cpu_temp
 import psutil
 
 MODEL_NAME = "rf-detr-base-coco" # yolo11n rf-detr-base-coco
@@ -80,6 +81,8 @@ def main():
         # CPU/memory logging
         cpu_percent = process.cpu_percent(interval=None)
         memory_mb = process.memory_info().rss / (1024 * 1024)
+        cpu_temp_c = get_cpu_temp()
+        cpu_temp_c = cpu_temp_c if cpu_temp_c is not None else ""
 
         detection_rows.append([
             frame_id,
@@ -87,7 +90,8 @@ def main():
             count,
             ",".join(labels),
             cpu_percent,
-            memory_mb
+            memory_mb,
+            cpu_temp_c
         ])
 
         frame_id += 1
@@ -123,7 +127,8 @@ def main():
             "NumDetections",
             "DetectedClasses",
             "CPU(%)",
-            "Memory(MB)"
+            "Memory(MB)",
+            "CPU_Temp(C)"
         ])
         writer.writerows(detection_rows)
 
@@ -146,8 +151,11 @@ def main():
         
         avg_cpu = sum(row[4] for row in detection_rows) / len(detection_rows)
         avg_memory = sum(row[5] for row in detection_rows) / len(detection_rows)
+        temp_values = [float(row[6]) for row in detection_rows if row[6] != ""]
+        avg_cpu_temp = sum(temp_values) / len(temp_values) if temp_values else 0.0
         f.write(f"Average CPU usage: {avg_cpu:.2f} %\n")
         f.write(f"Average Memory usage: {avg_memory:.2f} MB\n")
+        f.write(f"Average CPU temperature: {avg_cpu_temp:.2f} C\n")
 
     # ==========================
     # Print results
