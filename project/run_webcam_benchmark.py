@@ -1,10 +1,10 @@
-import cv2
 import time
 import csv
 import os
 import sys
 from collections import Counter
 from benchmark import Benchmark
+from camera_source import open_best_camera
 from models.yolo_decoder import YoloModel
 from models.rf_detr_decoder import RfDetrModel
 from temp import get_cpu_temp
@@ -38,21 +38,25 @@ def main():
     # Create simulations folder if not exists
     os.makedirs("simulations", exist_ok=True)
 
-    # Output filenames
-    csv_path = f"simulations/{model_name}_{experiment_name}.csv"
-    summary_path = f"simulations/{model_name}_{experiment_name}_summary.txt"
-
     # ==========================
     # Setup
     # ==========================
     model = load_model(MODEL_PATH)
     bench = Benchmark()
+    try:
+        cam = open_best_camera()
+    except RuntimeError as e:
+        print(str(e))
+        return
+    print(f"Using camera source: {cam.kind}")
 
-    cap = cv2.VideoCapture(0)
+    # Output filenames
+    csv_path = f"simulations/{model_name}_{cam.kind}_{experiment_name}.csv"
+    summary_path = f"simulations/{model_name}_{cam.kind}_{experiment_name}_summary.txt"
 
     # Warmup
     for _ in range(20):
-        ret, frame = cap.read()
+        ret, frame = cam.read()
         if ret:
             model(frame)
 
@@ -68,7 +72,7 @@ def main():
     # Benchmark loop
     # ==========================
     while True:
-        ret, frame = cap.read()
+        ret, frame = cam.read()
         if not ret:
             break
 
@@ -99,7 +103,7 @@ def main():
         if time.perf_counter() - start_time >= BENCHMARK_SECONDS:
             break
 
-    cap.release()
+    cam.release()
 
     # ==========================
     # Results
@@ -149,8 +153,12 @@ def main():
         for cls, count in class_counts.items():
             f.write(f"{cls}: {count}\n")
         
-        avg_cpu = sum(row[4] for row in detection_rows) / len(detection_rows)
-        avg_memory = sum(row[5] for row in detection_rows) / len(detection_rows)
+        if detection_rows:
+            avg_cpu = sum(row[4] for row in detection_rows) / len(detection_rows)
+            avg_memory = sum(row[5] for row in detection_rows) / len(detection_rows)
+        else:
+            avg_cpu = 0.0
+            avg_memory = 0.0
         temp_values = [float(row[6]) for row in detection_rows if row[6] != ""]
         avg_cpu_temp = sum(temp_values) / len(temp_values) if temp_values else 0.0
         f.write(f"Average CPU usage: {avg_cpu:.2f} %\n")
@@ -163,6 +171,8 @@ def main():
     print("\n===== BENCHMARK COMPLETE =====")
     print(f"CSV saved to: {csv_path}")
     print(f"Summary saved to: {summary_path}")
+    if not detection_rows:
+        print("No frames were processed. Check camera connection and permissions.")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 import cv2
 from benchmark import Benchmark
+from camera_source import open_best_camera
 from models.yolo_decoder import YoloModel
 from models.rf_detr_decoder import RfDetrModel
 
@@ -9,44 +10,67 @@ def load_model(path):
         return RfDetrModel(path)
     return YoloModel(path)
 
-MODEL_NAME = "yolo11n" # yolo11n rf-detr-base-coco
-MODEL_PATH = f"onnx_models/{MODEL_NAME}.onnx"
-model = load_model(MODEL_PATH)
-bench = Benchmark()
 
-cap = cv2.VideoCapture(0)
+def main():
+    model_name = "yolo11n"  # yolo11n rf-detr-base-coco
+    model_path = f"onnx_models/{model_name}.onnx"
+    model = load_model(model_path)
+    bench = Benchmark()
 
-# Warmup
-for _ in range(20):
-    ret, frame = cap.read()
-    if ret:
-        model(frame)
+    try:
+        cam = open_best_camera()
+    except RuntimeError as e:
+        print(str(e))
+        return
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
+    print(f"Using camera source: {cam.kind}")
 
-    bench.measure(model, frame)
-    img = model.draw(frame)
+    # Warmup
+    for _ in range(20):
+        ret, frame = cam.read()
+        if ret:
+            model(frame)
 
-    fps = bench.fps()
-    cv2.putText(img, f"FPS: {fps:.1f}",
-                (20,40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1,(0,0,255),2)
+    while True:
+        ret, frame = cam.read()
+        if not ret:
+            break
 
-    cv2.imshow("Benchmark", img)
+        bench.measure(model, frame)
+        img = model.draw(frame)
 
-    if cv2.waitKey(1) == ord('q'):
-        break
+        fps = bench.fps()
+        cv2.putText(
+            img,
+            f"FPS: {fps:.1f}",
+            (20, 40),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            2,
+        )
 
-cap.release()
-cv2.destroyAllWindows()
+        cv2.imshow("Benchmark", img)
 
-print("\n===== BENCHMARK RESULTS =====")
-print(f"Average latency: {bench.average_latency_ms():.2f} ms")
-print(f"95th percentile latency: {bench.percentile_latency_ms():.2f} ms")
-print(f"Average FPS: {1000 / bench.average_latency_ms():.2f}")
+        if cv2.waitKey(1) == ord("q"):
+            break
 
-bench.save_csv("yolo11n_results.csv")
+    cam.release()
+    cv2.destroyAllWindows()
+
+    avg_latency = bench.average_latency_ms()
+    p95_latency = bench.percentile_latency_ms()
+    avg_fps = (1000 / avg_latency) if avg_latency > 0 else 0.0
+
+    print("\n===== BENCHMARK RESULTS =====")
+    print(f"Average latency: {avg_latency:.2f} ms")
+    print(f"95th percentile latency: {p95_latency:.2f} ms")
+    print(f"Average FPS: {avg_fps:.2f}")
+    if not bench.times:
+        print("No frames were processed. Check camera connection and permissions.")
+
+    bench.save_csv(f"{model_name}_{cam.kind}_results.csv")
+
+
+if __name__ == "__main__":
+    main()
