@@ -58,19 +58,6 @@ def main():
     cam.release()
     cv2.destroyAllWindows()
 
-    avg_latency = bench.average_latency_ms()
-    p95_latency = bench.percentile_latency_ms()
-    avg_fps = (1000 / avg_latency) if avg_latency > 0 else 0.0
-
-    print("\n===== BENCHMARK RESULTS =====")
-    print(f"Average latency: {avg_latency:.2f} ms")
-    print(f"95th percentile latency: {p95_latency:.2f} ms")
-    print(f"Average FPS: {avg_fps:.2f}")
-    if not bench.times:
-        print("No frames were processed. Check camera connection and permissions.")
-
-    bench.save_csv(f"{model_name}_{cam.kind}_results.csv")
-
 
 if __name__ == "__main__":
     main()
