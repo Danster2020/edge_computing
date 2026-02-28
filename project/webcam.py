@@ -1,6 +1,7 @@
 import cv2
 from benchmark import Benchmark
 from camera_source import open_best_camera
+from model_selection import choose_model
 from models.efficientdet_decoder import EfficientDetD0Model
 from models.yolo_decoder import YoloModel
 from models.rf_detr_decoder import RfDetrModel
@@ -18,9 +19,21 @@ def load_model(path):
 
 
 def main():
-    model_name = "yolov5n"  # yolo11n yolo26n yolov5n rf-detr-base-coco efficientdet-d0 ssd_mobilenet_v1_12
-    model_path = f"onnx_models/{model_name}.onnx"
-    model = load_model(model_path)
+    try:
+        model_name, model_path = choose_model()
+    except RuntimeError as e:
+        print(str(e))
+        return
+
+    print(f"Selected model: {model_name}")
+
+    try:
+        model = load_model(model_path)
+    except Exception as e:
+        print(f"Failed to load model: {model_path}")
+        print(f"Reason: {e}")
+        return
+
     bench = Benchmark()
 
     try:
