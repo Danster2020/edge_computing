@@ -18,7 +18,7 @@ def load_model(path):
 
 
 def main():
-    model_name = "ssd_mobilenet_v1_12"  # yolo11n rf-detr-base-coco efficientdet-d0 ssd_mobilenet_v1_12
+    model_name = "yolov5n"  # yolo11n yolo26n yolov5n rf-detr-base-coco efficientdet-d0 ssd_mobilenet_v1_12
     model_path = f"onnx_models/{model_name}.onnx"
     model = load_model(model_path)
     bench = Benchmark()

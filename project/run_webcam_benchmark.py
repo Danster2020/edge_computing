@@ -12,7 +12,7 @@ from models.ssd_mobilenet_decoder import SsdMobilenetV1Model
 from temp import get_cpu_temp
 import psutil
 
-MODEL_NAME = "rf-detr-base-coco" # yolo11n rf-detr-base-coco efficientdet-d0 ssd_mobilenet_v1_12
+MODEL_NAME = "rf-detr-base-coco" # yolo11n yolo26n yolov5n rf-detr-base-coco efficientdet-d0 ssd_mobilenet_v1_12
 MODEL_PATH = f"onnx_models/{MODEL_NAME}.onnx"
 BENCHMARK_SECONDS = 60
 
