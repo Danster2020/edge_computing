@@ -5,19 +5,25 @@ import sys
 from collections import Counter
 from benchmark import Benchmark
 from camera_source import open_best_camera
+from models.efficientdet_decoder import EfficientDetD0Model
 from models.yolo_decoder import YoloModel
 from models.rf_detr_decoder import RfDetrModel
+from models.ssd_mobilenet_decoder import SsdMobilenetV1Model
 from temp import get_cpu_temp
 import psutil
 
-MODEL_NAME = "rf-detr-base-coco" # yolo11n rf-detr-base-coco
+MODEL_NAME = "rf-detr-base-coco" # yolo11n rf-detr-base-coco efficientdet-d0 ssd_mobilenet_v1_12
 MODEL_PATH = f"onnx_models/{MODEL_NAME}.onnx"
 BENCHMARK_SECONDS = 60
 
 
 def load_model(path):
+    if "efficientdet" in path.lower():
+        return EfficientDetD0Model(path)
     if "rf-detr" in path.lower() or "rfdetr" in path.lower():
         return RfDetrModel(path)
+    if "ssd_mobilenet" in path.lower() or "ssd-mobilenet" in path.lower() or "ssdmobilenet" in path.lower():
+        return SsdMobilenetV1Model(path)
     return YoloModel(path)
 
 
@@ -41,7 +47,17 @@ def main():
     # ==========================
     # Setup
     # ==========================
-    model = load_model(MODEL_PATH)
+    try:
+        model = load_model(MODEL_PATH)
+    except Exception as e:
+        print(f"Failed to load model: {MODEL_PATH}")
+        print(f"Reason: {e}")
+        if "efficientdet" in MODEL_PATH.lower():
+            print(
+                "efficientdet-d0.onnx appears invalid (missing graph weights). "
+                "Re-export/download a valid ONNX file."
+            )
+        return
     bench = Benchmark()
     try:
         cam = open_best_camera()

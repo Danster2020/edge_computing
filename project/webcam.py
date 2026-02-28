@@ -1,18 +1,24 @@
 import cv2
 from benchmark import Benchmark
 from camera_source import open_best_camera
+from models.efficientdet_decoder import EfficientDetD0Model
 from models.yolo_decoder import YoloModel
 from models.rf_detr_decoder import RfDetrModel
+from models.ssd_mobilenet_decoder import SsdMobilenetV1Model
 
 
 def load_model(path):
+    if "efficientdet" in path.lower():
+        return EfficientDetD0Model(path)
     if "rf-detr" in path.lower() or "rfdetr" in path.lower():
         return RfDetrModel(path)
+    if "ssd_mobilenet" in path.lower() or "ssd-mobilenet" in path.lower() or "ssdmobilenet" in path.lower():
+        return SsdMobilenetV1Model(path)
     return YoloModel(path)
 
 
 def main():
-    model_name = "yolo11n"  # yolo11n rf-detr-base-coco
+    model_name = "ssd_mobilenet_v1_12"  # yolo11n rf-detr-base-coco efficientdet-d0 ssd_mobilenet_v1_12
     model_path = f"onnx_models/{model_name}.onnx"
     model = load_model(model_path)
     bench = Benchmark()
