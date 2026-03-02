@@ -106,7 +106,6 @@ def main():
         # CPU/memory logging
         cpu_percent = process.cpu_percent(interval=None)
         process = psutil.Process()
-        cpu_percent = process.cpu_percent(interval=None)
         memory_mb = process.memory_info().rss / (1024 * 1024)
         cpu_temp_c = get_cpu_temp()
         cpu_temp_c = cpu_temp_c if cpu_temp_c is not None else ""
