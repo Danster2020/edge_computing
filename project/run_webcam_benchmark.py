@@ -169,20 +169,47 @@ def main():
         f.write(f"Average FPS: {avg_fps:.2f}\n\n")
 
         f.write("Detected objects summary:\n")
-        for cls, count in class_counts.items():
-            f.write(f"{cls}: {count}\n")
+        total_detected_objects = sum(class_counts.values())
+        for cls, count in class_counts.most_common():
+            class_pct = (count / total_detected_objects) * 100 if total_detected_objects > 0 else 0.0
+            f.write(f"{cls}: {count} ({class_pct:.2f}%)\n")
+        if total_detected_objects == 0:
+            f.write("No objects detected.\n")
         
         if detection_rows:
             avg_cpu = sum(row[4] for row in detection_rows) / len(detection_rows)
             avg_memory = sum(row[5] for row in detection_rows) / len(detection_rows)
+            min_cpu = min(row[4] for row in detection_rows)
+            max_cpu = max(row[4] for row in detection_rows)
+            min_memory = min(row[5] for row in detection_rows)
+            max_memory = max(row[5] for row in detection_rows)
+            frames_with_detections = sum(1 for row in detection_rows if row[2] > 0)
+            detection_pct = (frames_with_detections / len(detection_rows)) * 100
         else:
             avg_cpu = 0.0
             avg_memory = 0.0
+            min_cpu = 0.0
+            max_cpu = 0.0
+            min_memory = 0.0
+            max_memory = 0.0
+            detection_pct = 0.0
         temp_values = [float(row[6]) for row in detection_rows if row[6] != ""]
         avg_cpu_temp = sum(temp_values) / len(temp_values) if temp_values else 0.0
+        min_cpu_temp = min(temp_values) if temp_values else None
+        max_cpu_temp = max(temp_values) if temp_values else None
+        temp_min_str = f"{min_cpu_temp:.2f} C" if min_cpu_temp is not None else "N/A"
+        temp_max_str = f"{max_cpu_temp:.2f} C" if max_cpu_temp is not None else "N/A"
+
+        f.write(f"Frames with detections: {detection_pct:.2f} %\n")
         f.write(f"Average CPU usage: {avg_cpu:.2f} %\n")
+        f.write(f"Min CPU usage: {min_cpu:.2f} %\n")
+        f.write(f"Max CPU usage: {max_cpu:.2f} %\n")
         f.write(f"Average Memory usage: {avg_memory:.2f} MB\n")
+        f.write(f"Min Memory usage: {min_memory:.2f} MB\n")
+        f.write(f"Max Memory usage: {max_memory:.2f} MB\n")
         f.write(f"Average CPU temperature: {avg_cpu_temp:.2f} C\n")
+        f.write(f"Min CPU temperature: {temp_min_str}\n")
+        f.write(f"Max CPU temperature: {temp_max_str}\n")
 
     # ==========================
     # Print results
