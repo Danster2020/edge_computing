@@ -13,7 +13,7 @@ from models.ssd_mobilenet_decoder import SsdMobilenetV1Model
 from temp import get_cpu_temp
 import psutil
 
-BENCHMARK_SECONDS = 60
+BENCHMARK_SECONDS = 2
 
 
 def load_model(path):
@@ -74,12 +74,14 @@ def main():
     summary_path = f"simulations/{model_name}_{cam.kind}_{experiment_name}_summary.txt"
 
     # Warmup
+    print("\nWarming up...")
     for _ in range(20):
         ret, frame = cam.read()
         if ret:
             model(frame)
+    print("Warmup DONE")
 
-    print(f"\nRunning benchmark for {BENCHMARK_SECONDS} seconds...")
+    print(f"\nRUNNING BENCHMARK FOR {BENCHMARK_SECONDS} SECONDS...")
     start_time = time.perf_counter()
 
     frame_id = 0
