@@ -103,6 +103,8 @@ def main():
         
         # CPU/memory logging
         cpu_percent = process.cpu_percent(interval=None)
+        process = psutil.Process()
+        cpu_percent = process.cpu_percent(interval=None)
         memory_mb = process.memory_info().rss / (1024 * 1024)
         cpu_temp_c = get_cpu_temp()
         cpu_temp_c = cpu_temp_c if cpu_temp_c is not None else ""
@@ -146,7 +148,7 @@ def main():
         writer = csv.writer(f)
         writer.writerow([
             "Frame",
-            "Latency(ms)",
+            "Inference latency(ms)",
             "NumDetections",
             "DetectedClasses",
             "CPU(%)",
@@ -164,52 +166,77 @@ def main():
         f.write(f"Experiment: {experiment_name}\n")
         f.write(f"Duration: {BENCHMARK_SECONDS} seconds\n")
         f.write(f"Frames processed: {frame_id}\n")
-        f.write(f"Average latency: {avg_latency:.2f} ms\n")
-        f.write(f"95th percentile latency: {p95_latency:.2f} ms\n")
+        f.write(f"Average inference latency: {avg_latency:.2f} ms\n")
+        f.write(f"95th percentile inference latency: {p95_latency:.2f} ms\n")
         f.write(f"Average FPS: {avg_fps:.2f}\n\n")
+        
+        if detection_rows:
+            cpu_values = [row[4] for row in detection_rows]
+            memory_values = [row[5] for row in detection_rows]
+            temp_values = [float(row[6]) for row in detection_rows if row[6] != ""]
 
-        f.write("Detected objects summary:\n")
+            avg_cpu = sum(cpu_values) / len(cpu_values)
+            min_cpu = min(cpu_values)
+            max_cpu = max(cpu_values)
+
+            avg_memory = sum(memory_values) / len(memory_values)
+            min_memory = min(memory_values)
+            max_memory = max(memory_values)
+
+            frames_with_detections = sum(1 for row in detection_rows if row[2] > 0)
+            detection_pct = (frames_with_detections / len(detection_rows)) * 100
+
+            if temp_values:
+                avg_cpu_temp = sum(temp_values) / len(temp_values)
+                min_cpu_temp = min(temp_values)
+                max_cpu_temp = max(temp_values)
+            else:
+                avg_cpu_temp = None
+                min_cpu_temp = None
+                max_cpu_temp = None
+
+        else:
+            avg_cpu = min_cpu = max_cpu = 0.0
+            avg_memory = min_memory = max_memory = 0.0
+            detection_pct = 0.0
+            avg_cpu_temp = min_cpu_temp = max_cpu_temp = None
+
+        f.write(f"Frames with detections: {detection_pct:.2f} %\n")
+
+        f.write(f"Average CPU usage: {avg_cpu:.2f} %\n")
+        f.write(f"Min CPU usage: {min_cpu:.2f} %\n")
+        f.write(f"Max CPU usage: {max_cpu:.2f} %\n")
+
+        f.write(f"Average Memory usage: {avg_memory:.2f} MB\n")
+        f.write(f"Min Memory usage: {min_memory:.2f} MB\n")
+        f.write(f"Max Memory usage: {max_memory:.2f} MB\n")
+
+        f.write(
+            f"Average CPU temperature: {avg_cpu_temp:.2f} C\n"
+            if avg_cpu_temp is not None else
+            "Average CPU temperature: N/A\n"
+        )
+
+        f.write(
+            f"Min CPU temperature: {min_cpu_temp:.2f} C\n"
+            if min_cpu_temp is not None else
+            "Min CPU temperature: N/A\n"
+        )
+
+        f.write(
+            f"Max CPU temperature: {max_cpu_temp:.2f} C\n"
+            if max_cpu_temp is not None else
+            "Max CPU temperature: N/A\n"
+        )
+        
+        f.write("\n---- Detected objects summary ----\n")
         total_detected_objects = sum(class_counts.values())
         for cls, count in class_counts.most_common():
             class_pct = (count / total_detected_objects) * 100 if total_detected_objects > 0 else 0.0
             f.write(f"{cls}: {count} ({class_pct:.2f}%)\n")
         if total_detected_objects == 0:
             f.write("No objects detected.\n")
-        
-        if detection_rows:
-            avg_cpu = sum(row[4] for row in detection_rows) / len(detection_rows)
-            avg_memory = sum(row[5] for row in detection_rows) / len(detection_rows)
-            min_cpu = min(row[4] for row in detection_rows)
-            max_cpu = max(row[4] for row in detection_rows)
-            min_memory = min(row[5] for row in detection_rows)
-            max_memory = max(row[5] for row in detection_rows)
-            frames_with_detections = sum(1 for row in detection_rows if row[2] > 0)
-            detection_pct = (frames_with_detections / len(detection_rows)) * 100
-        else:
-            avg_cpu = 0.0
-            avg_memory = 0.0
-            min_cpu = 0.0
-            max_cpu = 0.0
-            min_memory = 0.0
-            max_memory = 0.0
-            detection_pct = 0.0
-        temp_values = [float(row[6]) for row in detection_rows if row[6] != ""]
-        avg_cpu_temp = sum(temp_values) / len(temp_values) if temp_values else 0.0
-        min_cpu_temp = min(temp_values) if temp_values else None
-        max_cpu_temp = max(temp_values) if temp_values else None
-        temp_min_str = f"{min_cpu_temp:.2f} C" if min_cpu_temp is not None else "N/A"
-        temp_max_str = f"{max_cpu_temp:.2f} C" if max_cpu_temp is not None else "N/A"
-
-        f.write(f"Frames with detections: {detection_pct:.2f} %\n")
-        f.write(f"Average CPU usage: {avg_cpu:.2f} %\n")
-        f.write(f"Min CPU usage: {min_cpu:.2f} %\n")
-        f.write(f"Max CPU usage: {max_cpu:.2f} %\n")
-        f.write(f"Average Memory usage: {avg_memory:.2f} MB\n")
-        f.write(f"Min Memory usage: {min_memory:.2f} MB\n")
-        f.write(f"Max Memory usage: {max_memory:.2f} MB\n")
-        f.write(f"Average CPU temperature: {avg_cpu_temp:.2f} C\n")
-        f.write(f"Min CPU temperature: {temp_min_str}\n")
-        f.write(f"Max CPU temperature: {temp_max_str}\n")
+        print()
 
     # ==========================
     # Print results
