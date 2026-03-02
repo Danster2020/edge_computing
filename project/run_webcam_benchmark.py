@@ -13,7 +13,7 @@ from models.ssd_mobilenet_decoder import SsdMobilenetV1Model
 from temp import get_cpu_temp
 import psutil
 
-BENCHMARK_SECONDS = 2
+BENCHMARK_SECONDS = 60
 
 
 def load_model(path):
