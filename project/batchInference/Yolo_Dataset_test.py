@@ -13,11 +13,11 @@ from tqdm import tqdm
 # ==============================
 IMAGE_FOLDER = "val2017"
 ANNOTATION_FILE = "annotations/instances_val2017.json"
-MODEL_PATH = "onnx_models\\yolo26n.onnx"  # Your ONNX model
+MODEL_PATH = "../onnx_models/yolo26n.onnx"  # Your ONNX model
 INPUT_SIZE = 640
 CONF_THRESH = 0.3
 IOU_THRESH = 0.5
-MAX_IMAGES = 20
+MAX_IMAGES = 0
 # ==============================
 
 # CPU threads
