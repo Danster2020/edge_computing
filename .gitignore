@@ -1,8 +1,8 @@
 .DS_Store
-*/simulations
-*/onnx_models
-*/*/val2017
-*/*/annotations
+/simulations
+/onnx_models
+*/val2017
+*/annotations
 
 # Byte-compiled / optimized / DLL files
 */__pycache__/

@@ -30,7 +30,7 @@ coco = COCO(ANNOTATION_FILE)
 image_ids = list(coco.imgs.keys())
 eval_image_ids = image_ids[:MAX_IMAGES] if MAX_IMAGES > 0 else image_ids
 
-# ✅ Correct YOLO → COCO category mapping
+# Correct YOLO to COCO category mapping
 coco_categories = coco.loadCats(coco.getCatIds())
 coco_categories = sorted(coco_categories, key=lambda x: x["id"])
 yolo_to_coco = {i: cat["id"] for i, cat in enumerate(coco_categories)}
